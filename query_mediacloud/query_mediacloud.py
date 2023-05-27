@@ -29,7 +29,7 @@ def load_api_clients():
     return mc_dir, wm_api
 
 
-def get_domains(mc_directory,collection_id:int)->list:
+def get_domains(mc_directory,collection_id:int) -> list:
     # Source: @rahulbot : https://github.com/mediacloud/api-client/issues/82
     # Get all the domains that form part of the given collection
     # Variables
@@ -48,11 +48,10 @@ def get_domains(mc_directory,collection_id:int)->list:
         # otherwise setup to fetch the next page of sources
         offset += len(response['results'])
 
-    domains = [s['name'] for s in sources]
-    return domains
+    return [s['name'] for s in sources]
 
 
-def get_stories(query_phrase:str, collection_id:int, start_date, end_date)->list:
+def get_stories(query_phrase:str, collection_id:int, start_date, end_date) -> list:
     # Get all the stories for the given query, collection, and time period
 
     n = 400 # number of domains that you can give in one query, 400 seems to work
@@ -71,7 +70,7 @@ def get_stories(query_phrase:str, collection_id:int, start_date, end_date)->list
     else:
         # Break up the domains into segments and query each one
         stories = []
-        for i in range(int(len(domains)/n)+1):
+        for i in range(len(domains) // n + 1):
             domain_segment = domains[i * n:(i * n) + n]
             stories += list(
                 wm_api.all_articles(f'"{query_phrase}" AND domain:({" OR ".join(domain_segment)})',

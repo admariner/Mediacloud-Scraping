@@ -9,7 +9,7 @@ import requests
 from bs4 import BeautifulSoup as bs
 
 
-def read_url(url:str)->str:
+def read_url(url:str) -> str:
     # 1) Check if it's website that does not return article text, like google maps
     scrapable = ss.check_scrapability(url)
     if scrapable is not True:
@@ -19,7 +19,7 @@ def read_url(url:str)->str:
     try:
         response = requests.get(url, timeout=20).text
         # timeout for the request is 20 seconds; should never take longer than 10 seconds for a working link
-        if len(response) == 0:
+        if not response:
             return "ERROR: Article not found"
 
         soup = bs(response, "html.parser")
@@ -49,7 +49,7 @@ def read_url(url:str)->str:
     stripped_paragraph = [tag.get_text().strip() for tag in paragraphs]
 
     # If the standard way to scrape returned empty, try a different handling
-    if len(stripped_paragraph) == 0 or stripped_paragraph == [""]:
+    if not stripped_paragraph or stripped_paragraph == [""]:
         return ss.handle_empty_ptags(url, soup, response)
 
     return " ".join(stripped_paragraph)  # return the content as one string

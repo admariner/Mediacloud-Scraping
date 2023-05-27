@@ -44,7 +44,7 @@ def check_soup_validity(low_soup_text: str) -> str:
     for f in e.soup_contents_text_errors['403 Forbidden']:
         if f in low_soup_text:
             error = 'ERROR: 403 Forbidden'
-    if low_soup_text=='forbidden' or low_soup_text=='403':
+    if low_soup_text in {'forbidden', '403'}:
         error = 'ERROR: 403 Forbidden'
 
     if 'Looks like something went wrong.'.lower() == low_soup_text or 'Something went wrong. Wait a moment and try again.'.lower()==low_soup_text:
@@ -54,11 +54,11 @@ def check_soup_validity(low_soup_text: str) -> str:
     for n in e.soup_contents_text_errors['404 Page not found']:
         if n in low_soup_text:
             error = 'ERROR: 404 Page not found'
-    if low_soup_text=='not found':
+    if low_soup_text == 'not acceptable':
+        error = 'ERROR: 406 Not Acceptable'
+    elif low_soup_text == 'not found':
         error =  'ERROR: 404 Page not found'
 
-    if low_soup_text=='not acceptable':
-        error = 'ERROR: 406 Not Acceptable'
     if '406 not acceptable' in low_soup_text:
         error = 'ERROR: 406 Not Acceptable'
 
@@ -130,13 +130,13 @@ def do_alternative_scraping(url, response, soup):
                 if 'articleBody' in jte.text:
                     json_obj = json.loads(jte.text)
                     try:
-                        article_text = json_obj['articleBody']
-                        return article_text
+                        return json_obj['articleBody']
                     except KeyError:
                         return 'ERROR: No text gathered'
             paragraphs = soup.find_all('p')
-            stripped_paragraph = [tag.get_text().strip() for tag in paragraphs]
-            if len(stripped_paragraph)>0:
+            if stripped_paragraph := [
+                tag.get_text().strip() for tag in paragraphs
+            ]:
                 return " ".join(stripped_paragraph)
             return  'ERROR: No text gathered'
     if 'miamiherald.typepad.com' in url:
@@ -174,10 +174,7 @@ def do_alternative_scraping(url, response, soup):
                       :-1]  # get the contents of the variables
         json_vers = json.loads(fg_contents)  # make it a json obj
         content_elts = json_vers['content_elements']  # get the relevant section of the json obj
-        text = []
-        for item in content_elts:
-            if item['type'] == 'text':
-                text.append(item['content'])
+        text = [item['content'] for item in content_elts if item['type'] == 'text']
         return " ".join(text)
 
     if 'toledoblade' in url:
@@ -206,8 +203,7 @@ def do_alternative_scraping(url, response, soup):
 
     if 'thepoliticalinsider' in url:
         blog_div_elts = soup.find_all('div', attrs={'class': 'text article-body font-default font-size-med'})
-        stripped = [tag.get_text().strip() for tag in blog_div_elts]
-        if len(stripped)>0:
+        if stripped := [tag.get_text().strip() for tag in blog_div_elts]:
             return " ".join(stripped)
         script_variable =  re.findall(r'class="yoast-schema-graph">[\S\s]*?<\/script>', response)
         try:
@@ -241,22 +237,17 @@ def do_alternative_scraping(url, response, soup):
                     text = json_version['props']['pageProps']['data']['page']['leaf']['bodyText']
                     return text
             return 'ERROR: No text gathered'
-        except IndexError:
+        except (IndexError, KeyError):
             return 'ERROR: No text gathered'
-        except KeyError:
-            return 'ERROR: No text gathered'
-
     if 'timesofindia' in url:
         if 'videoshow' in url or '/photostory' in url:
             return "ERROR: Video/ Image content only"
         alt_elts = soup.find_all('div', attrs={'data-articlebody': '1'})
         stripped = [tag.get_text().strip() for tag in alt_elts]
-        if len(stripped) < 1:
+        if not stripped:
             blog_div_elts = soup.find_all('div', attrs={'class': 'main-content single-article-content'})
             stripped = [tag.get_text().strip() for tag in blog_div_elts]
-            if len(stripped) < 1:
-                return 'ERROR: No text gathered'
-            return " ".join(stripped)
+            return 'ERROR: No text gathered' if not stripped else " ".join(stripped)
         return " ".join(stripped)
 
     if 'newsmax.com' in url.lower():
@@ -361,5 +352,4 @@ def handle_empty_ptags(url, soup, response):
     if handled_errors is not True:
         return handled_errors
 
-    handle_text = try_alt_scrape_method(url, soup, response)
-    return handle_text
+    return try_alt_scrape_method(url, soup, response)
